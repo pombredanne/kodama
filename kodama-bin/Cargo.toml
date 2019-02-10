@@ -1,6 +1,6 @@
 [package]
 name = "kodama-bin"
-version = "0.1.0"  #:version
+version = "0.1.2"  #:version
 authors = ["Diffeo <support@diffeo.com>"]
 description = """
 Agglomerative hierarchical clustering tools.
@@ -18,15 +18,15 @@ path = "src/locations.rs"
 
 [dependencies]
 # For agglomerative hierarchical clustering.
-kodama = { version = "0.1.0", path = ".." }
+kodama = { version = "0.2.2", path = ".." }
 # For reading/writing arrays.
-byteorder = "1.1.0"
+byteorder = "1.2.6"
 # For argv parsing.
-clap = "2"
+clap = "2.32.0"
 # For CSV parsing.
-csv = "1.0.0-beta.4"
+csv = "1"
 # For data parallelism.
-rayon = "0.8"
+rayon = "1"
 # For automatic deserialization into structs when parsing CSV.
 serde = "1"
 serde_derive = "1"

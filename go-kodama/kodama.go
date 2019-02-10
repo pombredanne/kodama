@@ -22,6 +22,7 @@ import "C"
 import (
 	"fmt"
 	"math"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -35,6 +36,7 @@ import (
 // cluster is computed using one of the variants of this type.
 type Method int
 
+// The available methods for computing linkage.
 const (
 	MethodSingle Method = iota
 	MethodComplete
@@ -106,6 +108,14 @@ func (dend *Dendrogram) Observations() int {
 // Steps returns a slice of steps that make up the given dendrogram.
 func (dend *Dendrogram) Steps() []Step {
 	len := dend.Len()
+	if len == 0 {
+		// Why do we special case the empty dendrogram? Well, it turns
+		// out that for an empty dendrogram, the pointer returned by
+		// Rust doesn't actually point to valid memory, and Go does not
+		// like this one bit. So avoid asking for the steps when we
+		// know they are empty.
+		return []Step{}
+	}
 	csteps := C.kodama_dendrogram_steps(dend.p)
 	gosteps := (*[math.MaxInt32]C.kodama_step)(unsafe.Pointer(csteps))[:len:len]
 
@@ -175,11 +185,19 @@ func Linkage64(
 			expectedLen, len(condensedDissimilarityMatrix)))
 	}
 
-	cmat := (*C.double)(unsafe.Pointer(&condensedDissimilarityMatrix[0]))
+	// Since we are reading this matrix (which is in Go memory) from
+	// Rust, and since we are explicitly allowing zero-length slices, we
+	// must ensure that we pass a non-null pointer to Rust. (If the Rust
+	// bindings allowed a null pointer, then we'd wind up with UB.)
+	if condensedDissimilarityMatrix == nil {
+		condensedDissimilarityMatrix = []float64{}
+	}
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&condensedDissimilarityMatrix))
+	cmat := (*C.double)(unsafe.Pointer(header.Data))
 	return newDendrogram(C.kodama_linkage_double(cmat, C.size_t(observations), method.enum()))
 }
 
-// Linkage64 returns a hierarchical clustering of observations given their
+// Linkage32 returns a hierarchical clustering of observations given their
 // pairwise dissimilarities as single-precision floating point numbers.
 //
 // The pairwise dissimilarities must be provided as a *condensed pairwise
@@ -215,6 +233,14 @@ func Linkage32(
 			expectedLen, len(condensedDissimilarityMatrix)))
 	}
 
-	cmat := (*C.float)(unsafe.Pointer(&condensedDissimilarityMatrix[0]))
+	// Since we are reading this matrix (which is in Go memory) from
+	// Rust, and since we are explicitly allowing zero-length slices, we
+	// must ensure that we pass a non-null pointer to Rust. (If the Rust
+	// bindings allowed a null pointer, then we'd wind up with UB.)
+	if condensedDissimilarityMatrix == nil {
+		condensedDissimilarityMatrix = []float32{}
+	}
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&condensedDissimilarityMatrix))
+	cmat := (*C.float)(unsafe.Pointer(header.Data))
 	return newDendrogram(C.kodama_linkage_float(cmat, C.size_t(observations), method.enum()))
 }

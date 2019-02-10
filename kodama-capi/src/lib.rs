@@ -10,18 +10,20 @@ use libc::{c_double, c_float, size_t};
 mod macros;
 
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum kodama_method {
     Single, Complete, Average, Weighted, Ward, Centroid, Median,
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct kodama_dendrogram {
     steps: Vec<kodama_step>,
     observations: size_t,
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct kodama_step {
     pub cluster1: size_t,
     pub cluster2: size_t,
@@ -49,6 +51,7 @@ ffi_fn! {
         observations: size_t,
         method: kodama_method,
     ) -> *mut kodama_dendrogram {
+        assert!(!dis.is_null());
         let dis_len = (observations * (observations - 1)) / 2;
         let dis = unsafe { slice::from_raw_parts_mut(dis, dis_len) };
         let dend = linkage(dis, observations, method.into_method());
@@ -75,6 +78,7 @@ ffi_fn! {
         observations: size_t,
         method: kodama_method,
     ) -> *mut kodama_dendrogram {
+        assert!(!dis.is_null());
         let dis_len = (observations * (observations - 1)) / 2;
         let dis = unsafe { slice::from_raw_parts_mut(dis, dis_len) };
         let dend = linkage(dis, observations, method.into_method());
