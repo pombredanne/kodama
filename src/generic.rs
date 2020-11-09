@@ -1,9 +1,9 @@
 use num_traits::Float;
 
-use condensed::CondensedMatrix;
-use dendrogram::Dendrogram;
-use method;
-use {LinkageState, Method};
+use crate::condensed::CondensedMatrix;
+use crate::dendrogram::Dendrogram;
+use crate::method;
+use crate::{LinkageState, Method};
 
 /// Perform hierarchical clustering using Müllner's "generic" algorithm.
 ///
@@ -107,7 +107,7 @@ pub fn generic_with<T: Float>(
 #[inline]
 fn single<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -140,7 +140,7 @@ fn single<T: Float>(
 #[inline]
 fn complete<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -163,7 +163,7 @@ fn complete<T: Float>(
 #[inline]
 fn average<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -197,7 +197,7 @@ fn average<T: Float>(
 #[inline]
 fn weighted<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -230,7 +230,7 @@ fn weighted<T: Float>(
 #[inline]
 fn ward<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -240,16 +240,26 @@ fn ward<T: Float>(
 
     for x in state.active.range(..a) {
         method::ward(
-            dis[[x, a]], &mut dis[[x, b]], dist,
-            size_a, size_b, state.sizes[x]);
+            dis[[x, a]],
+            &mut dis[[x, b]],
+            dist,
+            size_a,
+            size_b,
+            state.sizes[x],
+        );
         if state.nearest[x] == a {
             state.nearest[x] = ab;
         }
     }
     for x in state.active.range(a..b).skip(1) {
         method::ward(
-            dis[[a, x]], &mut dis[[x, b]], dist,
-            size_a, size_b, state.sizes[x]);
+            dis[[a, x]],
+            &mut dis[[x, b]],
+            dist,
+            size_a,
+            size_b,
+            state.sizes[x],
+        );
         if &dis[[x, ab]] < state.queue.priority(x) {
             state.queue.set_priority(x, dis[[x, ab]]);
             state.nearest[x] = ab;
@@ -258,8 +268,13 @@ fn ward<T: Float>(
     let mut min = *state.queue.priority(b);
     for x in state.active.range(b..).skip(1) {
         method::ward(
-            dis[[a, x]], &mut dis[[b, x]], dist,
-            size_a, size_b, state.sizes[x]);
+            dis[[a, x]],
+            &mut dis[[b, x]],
+            dist,
+            size_a,
+            size_b,
+            state.sizes[x],
+        );
         if dis[[ab, x]] < min {
             state.queue.set_priority(b, dis[[ab, x]]);
             state.nearest[b] = x;
@@ -271,7 +286,7 @@ fn ward<T: Float>(
 #[inline]
 fn centroid<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -309,7 +324,7 @@ fn centroid<T: Float>(
 #[inline]
 fn median<T: Float>(
     state: &mut LinkageState<T>,
-    dis: &mut CondensedMatrix<T>,
+    dis: &mut CondensedMatrix<'_, T>,
     a: usize,
     b: usize,
 ) {
@@ -345,11 +360,11 @@ fn median<T: Float>(
 
 #[cfg(test)]
 mod tests {
-    use {Method, MethodChain, nnchain, primitive};
-    use test::DistinctMatrix;
     use super::generic;
+    use crate::test::DistinctMatrix;
+    use crate::{nnchain, primitive, Method, MethodChain};
 
-    quickcheck! {
+    quickcheck::quickcheck! {
         fn prop_generic_single_primitive(mat: DistinctMatrix) -> bool {
             let dend_prim = primitive(
                 &mut mat.matrix(), mat.len(), Method::Single);

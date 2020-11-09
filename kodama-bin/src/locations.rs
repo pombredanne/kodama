@@ -1,12 +1,6 @@
-extern crate byteorder;
-#[macro_use]
-extern crate clap;
-extern crate csv;
-extern crate kodama;
-extern crate rayon;
-extern crate serde;
-#[macro_use]
-extern crate serde_derive;
+use csv;
+use kodama;
+use serde::{Deserialize, Serialize};
 
 use std::fs::File;
 use std::io::{self, Write};
@@ -69,8 +63,7 @@ fn haversine(loc1: &Location, loc2: &Location) -> f64 {
     );
     let delta_lat = lat2 - lat1;
     let delta_lon = lon2 - lon1;
-    let a =
-        (delta_lat / 2.0).sin().powi(2)
+    let a = (delta_lat / 2.0).sin().powi(2)
         + lat1.cos() * lat2.cos() * (delta_lon / 2.0).sin().powi(2);
     2.0 * EARTH_RADIUS * a.sqrt().atan()
 }
@@ -80,11 +73,9 @@ fn haversine(loc1: &Location, loc2: &Location) -> f64 {
 ///
 /// The distance between each pair is computed by the given `distance`
 /// function.
-fn condensed_distance_matrix<F>(
-    records: &[Location],
-    distance: F,
-) -> Vec<f64>
-where F: Fn(&Location, &Location) -> f64 + Send + Sync + 'static
+fn condensed_distance_matrix<F>(records: &[Location], distance: F) -> Vec<f64>
+where
+    F: Fn(&Location, &Location) -> f64 + Send + Sync + 'static,
 {
     // We write this "functionally" so that we can benefit from easy
     // data parallelism.
@@ -92,7 +83,7 @@ where F: Fn(&Location, &Location) -> f64 + Send + Sync + 'static
         .into_par_iter()
         // Iterate over (0, 1), (0, 2), ..., (1, 2), (1, 3), ..., (n-1, n)
         .flat_map(|i| {
-            ((i+1)..records.len()).into_par_iter().map(move |j| (i, j))
+            ((i + 1)..records.len()).into_par_iter().map(move |j| (i, j))
         })
         .map(|(i, j)| distance(&records[i], &records[j]))
         .collect()
@@ -101,7 +92,7 @@ where F: Fn(&Location, &Location) -> f64 + Send + Sync + 'static
 /// Run the program using the results of argv parsing.
 ///
 /// If there was a problem, return an error.
-fn run(matches: clap::ArgMatches) -> io::Result<()> {
+fn run(matches: clap::ArgMatches<'_>) -> io::Result<()> {
     // Get the user supplied method. Default to single linkage.
     let method: Method = matches
         .value_of("method")
@@ -150,24 +141,26 @@ fn main() {
 
     // Set up the argv parser.
     let app = App::new("locations")
-        .author(crate_authors!())
-        .version(crate_version!())
+        .author(clap::crate_authors!())
+        .version(clap::crate_version!())
         .max_term_width(100)
         .setting(AppSettings::UnifiedHelpMessage)
-        .arg(Arg::with_name("location-data")
-            .required(true)
-            .help("CSV with the following columns: \
+        .arg(Arg::with_name("location-data").required(true).help(
+            "CSV with the following columns: \
                    City,Region,Country,Latitude,Longitude. \
-                   Latitude and Longitude should be in degrees."))
-        .arg(Arg::with_name("load-dist-from")
-            .long("load-dist-from")
-            .takes_value(true))
-        .arg(Arg::with_name("save-dist-to")
-            .long("save-dist-to")
-            .takes_value(true))
-        .arg(Arg::with_name("method")
-            .long("method")
-            .takes_value(true));
+                   Latitude and Longitude should be in degrees.",
+        ))
+        .arg(
+            Arg::with_name("load-dist-from")
+                .long("load-dist-from")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("save-dist-to")
+                .long("save-dist-to")
+                .takes_value(true),
+        )
+        .arg(Arg::with_name("method").long("method").takes_value(true));
 
     // Run the program. If there was an error, print it.
     if let Err(err) = run(app.get_matches()) {

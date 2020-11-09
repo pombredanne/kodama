@@ -1,9 +1,9 @@
 use num_traits::Float;
 
-use condensed::CondensedMatrix;
-use dendrogram::Dendrogram;
-use method;
-use {LinkageState, Method};
+use crate::condensed::CondensedMatrix;
+use crate::dendrogram::Dendrogram;
+use crate::method;
+use crate::{LinkageState, Method};
 
 /// Perform hierarchical clustering using the minimum spanning tree
 /// algorithm as described in Müllner's paper.
@@ -41,7 +41,8 @@ pub fn mst_with<T: Float>(
     state.active.remove(cluster);
 
     for _ in 0..dis.observations() - 1 {
-        let mut min_obs = state.active
+        let mut min_obs = state
+            .active
             .iter()
             .next()
             .expect("at least one active observation");
@@ -71,11 +72,11 @@ pub fn mst_with<T: Float>(
 
 #[cfg(test)]
 mod tests {
-    use {Method, generic, primitive};
-    use test::DistinctMatrix;
     use super::mst;
+    use crate::test::DistinctMatrix;
+    use crate::{generic, primitive, Method};
 
-    quickcheck! {
+    quickcheck::quickcheck! {
         fn prop_mst_primitive(mat: DistinctMatrix) -> bool {
             let dend_prim = primitive(
                 &mut mat.matrix(), mat.len(), Method::Single);

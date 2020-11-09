@@ -166,8 +166,8 @@ impl<T: Float> LinkageHeap<T> {
 
 #[cfg(test)]
 mod tests {
-    use num_traits::Float;
     use super::LinkageHeap;
+    use num_traits::Float;
 
     fn is_sorted_asc<T: Float>(xs: &[T]) -> bool {
         for win in xs.windows(2) {
@@ -245,14 +245,14 @@ mod tests {
         assert_eq!(ps, &[1.0, 2.0]);
     }
 
-    quickcheck! {
+    quickcheck::quickcheck! {
         fn prop_heap_invariant(xs: Vec<f64>) -> bool {
             let mut heap = new_heap(&xs);
             is_sorted_asc(&pop_all(&mut heap))
         }
     }
 
-    quickcheck! {
+    quickcheck::quickcheck! {
         fn prop_heapify_heap_invariant(xs: Vec<f64>) -> bool {
             let mut heap = heapify(&xs);
             is_sorted_asc(&pop_all(&mut heap))

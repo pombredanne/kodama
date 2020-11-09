@@ -1,10 +1,10 @@
 use num_traits::Float;
 
-use active::Active;
-use condensed::CondensedMatrix;
-use dendrogram::Dendrogram;
-use method;
-use {LinkageState, Method};
+use crate::active::Active;
+use crate::condensed::CondensedMatrix;
+use crate::dendrogram::Dendrogram;
+use crate::method;
+use crate::{LinkageState, Method};
 
 /// Perform hierarchical clustering using the "primitive" algorithm as
 /// described in Müllner's paper.
@@ -77,15 +77,27 @@ pub fn primitive_with<T: Float>(
             Method::Average => {
                 for x in state.active.range(..a) {
                     method::average(
-                        dis[[x, a]], &mut dis[[x, b]], size_a, size_b);
+                        dis[[x, a]],
+                        &mut dis[[x, b]],
+                        size_a,
+                        size_b,
+                    );
                 }
                 for x in state.active.range(a..b).skip(1) {
                     method::average(
-                        dis[[a, x]], &mut dis[[x, b]], size_a, size_b);
+                        dis[[a, x]],
+                        &mut dis[[x, b]],
+                        size_a,
+                        size_b,
+                    );
                 }
                 for x in state.active.range(b..).skip(1) {
                     method::average(
-                        dis[[a, x]], &mut dis[[b, x]], size_a, size_b);
+                        dis[[a, x]],
+                        &mut dis[[b, x]],
+                        size_a,
+                        size_b,
+                    );
                 }
             }
             Method::Weighted => {
@@ -102,32 +114,62 @@ pub fn primitive_with<T: Float>(
             Method::Ward => {
                 for x in state.active.range(..a) {
                     method::ward(
-                        dis[[x, a]], &mut dis[[x, b]], dist,
-                        size_a, size_b, state.sizes[x]);
+                        dis[[x, a]],
+                        &mut dis[[x, b]],
+                        dist,
+                        size_a,
+                        size_b,
+                        state.sizes[x],
+                    );
                 }
                 for x in state.active.range(a..b).skip(1) {
                     method::ward(
-                        dis[[a, x]], &mut dis[[x, b]], dist,
-                        size_a, size_b, state.sizes[x]);
+                        dis[[a, x]],
+                        &mut dis[[x, b]],
+                        dist,
+                        size_a,
+                        size_b,
+                        state.sizes[x],
+                    );
                 }
                 for x in state.active.range(b..).skip(1) {
                     method::ward(
-                        dis[[a, x]], &mut dis[[b, x]], dist,
-                        size_a, size_b, state.sizes[x]);
+                        dis[[a, x]],
+                        &mut dis[[b, x]],
+                        dist,
+                        size_a,
+                        size_b,
+                        state.sizes[x],
+                    );
                 }
             }
             Method::Centroid => {
                 for x in state.active.range(..a) {
                     method::centroid(
-                        dis[[x, a]], &mut dis[[x, b]], dist, size_a, size_b);
+                        dis[[x, a]],
+                        &mut dis[[x, b]],
+                        dist,
+                        size_a,
+                        size_b,
+                    );
                 }
                 for x in state.active.range(a..b).skip(1) {
                     method::centroid(
-                        dis[[a, x]], &mut dis[[x, b]], dist, size_a, size_b);
+                        dis[[a, x]],
+                        &mut dis[[x, b]],
+                        dist,
+                        size_a,
+                        size_b,
+                    );
                 }
                 for x in state.active.range(b..).skip(1) {
                     method::centroid(
-                        dis[[a, x]], &mut dis[[b, x]], dist, size_a, size_b);
+                        dis[[a, x]],
+                        &mut dis[[b, x]],
+                        dist,
+                        size_a,
+                        size_b,
+                    );
                 }
             }
             Method::Median => {
@@ -150,7 +192,7 @@ pub fn primitive_with<T: Float>(
 
 #[inline(never)]
 fn argmin<T: Float>(
-    matrix: &CondensedMatrix<T>,
+    matrix: &CondensedMatrix<'_, T>,
     active: &Active,
 ) -> Option<(usize, usize, T)> {
     // A natural representation for min is Option<_>, but this requires
@@ -159,12 +201,10 @@ fn argmin<T: Float>(
     // minimum.
     let mut min = match active.iter().next() {
         None => return None,
-        Some(row) => {
-            match active.range(row..).skip(1).next() {
-                None => return None,
-                Some(col) => (row, col, matrix[[row, col]]),
-            }
-        }
+        Some(row) => match active.range(row..).skip(1).next() {
+            None => return None,
+            Some(col) => (row, col, matrix[[row, col]]),
+        },
     };
     for row in active.iter() {
         for col in active.range(row..).skip(1) {
@@ -179,9 +219,9 @@ fn argmin<T: Float>(
 
 #[cfg(test)]
 mod tests {
-    use active::Active;
-    use condensed::CondensedMatrix;
     use super::argmin;
+    use crate::active::Active;
+    use crate::condensed::CondensedMatrix;
 
     #[test]
     fn argmin_zero() {
@@ -199,12 +239,7 @@ mod tests {
 
     #[test]
     fn argmin_simple() {
-        let mut data = vec![
-            0.1, 0.2, 0.3, 0.4,
-            1.2, 0.01, 1.4,
-            2.3, 2.4,
-            3.4,
-        ];
+        let mut data = vec![0.1, 0.2, 0.3, 0.4, 1.2, 0.01, 1.4, 2.3, 2.4, 3.4];
         let mat = CondensedMatrix::new(&mut data, 5);
         assert_eq!(argmin(&mat, &Active::with_len(5)).unwrap(), (1, 3, 0.01));
     }

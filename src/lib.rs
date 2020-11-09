@@ -229,13 +229,6 @@ Obviously, this is not ideal and there is a lot of room for improvement!
 
 #![deny(missing_docs)]
 
-extern crate num_traits;
-#[cfg(test)]
-#[macro_use]
-extern crate quickcheck;
-#[cfg(test)]
-extern crate rand;
-
 use std::error;
 use std::fmt;
 use std::io;
@@ -244,24 +237,24 @@ use std::str::FromStr;
 
 use num_traits::Float;
 
-pub use dendrogram::{Dendrogram, Step};
-pub use generic::{generic, generic_with};
-pub use primitive::{primitive, primitive_with};
-pub use chain::{nnchain, nnchain_with};
-pub use spanning::{mst, mst_with};
+pub use crate::chain::{nnchain, nnchain_with};
+pub use crate::dendrogram::{Dendrogram, Step};
+pub use crate::generic::{generic, generic_with};
+pub use crate::primitive::{primitive, primitive_with};
+pub use crate::spanning::{mst, mst_with};
 
-use active::Active;
-use queue::LinkageHeap;
-use union::LinkageUnionFind;
+use crate::active::Active;
+use crate::queue::LinkageHeap;
+use crate::union::LinkageUnionFind;
 
 mod active;
 mod chain;
 mod condensed;
 mod dendrogram;
 mod generic;
+mod method;
 mod primitive;
 mod queue;
-mod method;
 mod spanning;
 #[cfg(test)]
 mod test;
@@ -278,20 +271,10 @@ pub enum Error {
     InvalidMethod(String),
 }
 
-impl error::Error for Error {
-    fn description(&self) -> &str {
-        match *self {
-            Error::InvalidMethod(_) => "invalid method",
-        }
-    }
-
-    fn cause(&self) -> Option<&error::Error> {
-        None
-    }
-}
+impl error::Error for Error {}
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             Error::InvalidMethod(ref name) => {
                 write!(f, "unrecognized method name: '{}'", name)
@@ -447,7 +430,7 @@ impl Method {
     fn square<T: Float>(&self, condensed_matrix: &mut [T]) {
         if self.on_squares() {
             for x in condensed_matrix.iter_mut() {
-                * x = *x * *x;
+                *x = *x * *x;
             }
         }
     }
@@ -720,6 +703,10 @@ impl<T: Float> LinkageState<T> {
         self.sizes[cluster2] = self.sizes[cluster1] + self.sizes[cluster2];
         self.active.remove(cluster1);
         dend.push(Step::new(
-            cluster1, cluster2, dissimilarity, self.sizes[cluster2]));
+            cluster1,
+            cluster2,
+            dissimilarity,
+            self.sizes[cluster2],
+        ));
     }
 }

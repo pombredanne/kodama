@@ -1,9 +1,6 @@
-extern crate kodama;
-extern crate libc;
-
 use std::slice;
 
-use kodama::{Method, linkage};
+use kodama::{linkage, Method};
 use libc::{c_double, c_float, size_t};
 
 #[macro_use]
@@ -12,7 +9,13 @@ mod macros;
 #[repr(C)]
 #[derive(Clone, Copy, Debug)]
 pub enum kodama_method {
-    Single, Complete, Average, Weighted, Ward, Centroid, Median,
+    Single,
+    Complete,
+    Average,
+    Weighted,
+    Ward,
+    Centroid,
+    Median,
 }
 
 #[repr(C)]
